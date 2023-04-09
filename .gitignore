@@ -1,0 +1,5 @@
+.idea/
+TOKEN*
+__pycache__/
+config.json
+competitions*

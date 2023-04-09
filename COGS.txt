@@ -1,0 +1,12 @@
+wiki
+utilities
+aspects
+crashlog
+custom_commands
+logs.text
+logs.member
+remind
+nodes
+competitions
+moderation
+errorhandlerjishaku

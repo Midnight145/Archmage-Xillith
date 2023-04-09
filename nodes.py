@@ -9,7 +9,13 @@ class Nodes(commands.Cog):
 
     @commands.command()
     async def search_nodes(self, context: commands.Context, *args):
-        kwargs = dict((k, v) for k, v in (pair.split('=') for pair in args))
+        """
+        Search for nodes
+        :param context: the command context
+        :param args: The arguments to search for, in the form of key=value. Generally aspects, but modifiers and types are also valid.
+        :return:
+        """
+        kwargs = dict((k, v) for k, v in (pair.split('=') for pair in args))  # convert args to dict, assuming format key=value
         res = api.search_nodes(**kwargs)
 
         entries = []

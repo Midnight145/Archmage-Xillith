@@ -1,6 +1,7 @@
 import json
 from .node import Type, Modifier
 
+
 class Node:
     def __init__(self):
         self.pos = {}
@@ -21,9 +22,13 @@ aspects = "aer,alienis,aqua,arbor,auram,bestia,cognitio,corpus,desidia,exanimis,
           "meto,mortuus,motus,ordo,pannus,perditio,perfodio,permutatio,potentia,praecantatio,sano,sensus,spiritus," \
           "superbia,telum,tempestas,tenebrae,terra,tutamen,vacuos,venenum,victus,vinculum,vitium,vitreus,volatus"
 
-aspect_map = {aspect: [] for aspect in aspects.split(",")}
-modifier_map = {Modifier.name: [] for Modifier in Modifier}
-type_map = {Type.name: [] for Type in Type}
+"""
+These dicts are used to store all nodes that have a specific aspect, modifier, or type. Not very memory efficient,
+but it's fast and easy to use.
+"""
+aspect_map = {aspect: [] for aspect in aspects.split(",")}  # will store all nodes that have a specific aspect
+modifier_map = {Modifier.name: [] for Modifier in Modifier}  # will store all nodes that have a specific modifier
+type_map = {Type.name: [] for Type in Type}  # will store all nodes that have a specific type
 
 file = open("api/nodes.json", "r")
 nodes = json.load(file)
@@ -45,10 +50,10 @@ def search_nodes(aspects=None, modifier=None, type=None):
     nodes = None
     if aspects:
         aspect_list = aspects.split(",")
-        nodes = set(node_aspects(aspect_list))
+        nodes = set(node_aspects(aspect_list))  # set to remove duplicates
     if modifier:
         if nodes:
-            nodes &= set(node_modifier(modifier))
+            nodes &= set(node_modifier(modifier))  # some bit magic to find the intersection of two sets
         else:
             nodes = set(node_modifier(modifier))
     if type:
@@ -59,6 +64,8 @@ def search_nodes(aspects=None, modifier=None, type=None):
 
     return list(nodes)
 
+
+# various helper functions to find nodes with specific aspects, modifiers, or types
 
 def node_aspects(aspects: list[str]):
     nodes = set(aspect_map[aspects[0]])

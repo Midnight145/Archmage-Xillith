@@ -1,3 +1,5 @@
+import datetime
+
 import sqlite3
 
 import uuid
@@ -52,37 +54,60 @@ class Report(commands.Cog):
         await channel.send(f"Ticket created by {payload.member.mention} ({payload.member.id})")
 
     @commands.command()
-    async def close(self, context: commands.Context):
+    async def close(self, context: commands.Context, *, reason=""):
         if context.channel.category.id != self.bot.config["ticket_category"]:
             return
+        embed = await self.close_ticket(self, context, reason)
+        channel = context.guild.get_channel(self.bot.config["admin_logs"])
+        await channel.send(embed=embed)
+
+        await context.channel.delete()
+
+    @staticmethod
+    async def close_ticket(self, context: commands.Context, reason=""):
         messages = [i async for i in context.channel.history(oldest_first=True)]
         saved_pfps = []
 
-        ticket_creator = context.guild.get_member(int(context.channel.name.split("-")[1]))
+        try:
+            ticket_creator = context.guild.get_member(int(context.channel.name.split("-")[1]))
+        except ValueError:
+            ticket_creator = context.guild.get_member(int(context.channel.topic))
         creation_time = context.channel.created_at.timestamp()
         close_time = context.message.created_at.timestamp()
         closed_by = context.author.id
 
-        self.bot.db.execute("INSERT INTO tickets (creator, creator_name, creation_time, close_time, closed_by, closed_by_name) "
-                            "VALUES (?, ?, ?, ?, ?, ?)",
-                            (ticket_creator.id, ticket_creator.display_name, int(creation_time), close_time, closed_by, context.author.display_name))
+        self.bot.db.execute(
+            "INSERT INTO tickets (creator, creator_name, creation_time, close_time, closed_by, closed_by_name) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (ticket_creator.id, ticket_creator.display_name, int(creation_time), close_time, closed_by,
+             context.author.display_name))
         id_ = self.bot.db.lastrowid
 
         for message in messages:
+            if len(message.content) == 0 and len(message.attachments) == 0:
+                continue
             if message.author.id not in saved_pfps:
-                saved_pfps.append(message.author.id)
+                if message.webhook_id is not None:
+                    user = await self.bot.get_member(message.author.name)
+                else:
+                    user = message.author
+
+                saved_pfps.append(user.id)
                 blob = io.BytesIO()
                 try:
-                    await message.author.avatar.save(blob)
+                    await user.avatar.save(blob)
                 except AttributeError:
-                    await message.author.default_avatar.save(blob)
+                    await user.default_avatar.save(blob)
                 try:
-                    self.bot.db.execute("INSERT INTO pfps (id, data) VALUES (?, ?)", (message.author.id, blob.getvalue()))
+                    self.bot.db.execute("INSERT INTO pfps (id, username, data) VALUES (?, ?, ?)",
+                                        (message.author.id, message.author.name, blob.getvalue()))
                 except sqlite3.IntegrityError:
                     pass
-            content = re.sub(r'<@!?([0-9]+)>', lambda x: f"@{context.guild.get_member(int(x.group(1))).display_name}", message.content)
-            self.bot.db.execute("INSERT INTO messages (ticket_id, author_id, author, content, time) VALUES (?, ?, ?, ?, ?)",
-                                (id_, message.author.id, message.author.display_name, content, int(message.created_at.timestamp())))
+            content = re.sub(r'<@!?([0-9]+)>', lambda x: f"@{context.guild.get_member(int(x.group(1))).display_name}",
+                             message.content)
+            self.bot.db.execute(
+                "INSERT INTO messages (ticket_id, author_id, author, content, time) VALUES (?, ?, ?, ?, ?)",
+                (id_, message.author.id, message.author.display_name, content, int(message.created_at.timestamp())))
             message_id = self.bot.db.lastrowid
             if message.attachments:
                 for file in message.attachments:
@@ -91,8 +116,27 @@ class Report(commands.Cog):
                     self.bot.db.execute("INSERT INTO attachments (message_id, name, data) VALUES (?, ?, ?)",
                                         (message_id, file.filename, blob.getvalue()))
 
+        embed = discord.Embed(
+            title="Ticket Closed",
+            description=f"{reason}",
+            timestamp=datetime.datetime.utcnow()
+        )
+        embed.set_author(name=str(context.author) + " | " + str(context.author.id),
+                         icon_url=context.author.display_avatar.url)
+        embed.set_footer(text=str(ticket_creator) + " | " + str(ticket_creator.id), icon_url=ticket_creator.display_avatar.url)
+
+        embed.set_footer(text=str(ticket_creator.guild) + " | " + str(ticket_creator.guild.id), icon_url=ticket_creator.guild.icon)
+        await ticket_creator.send(embed=embed)
+        embed.description += f"\nhttps://moderation.nidmight.co/tickets/{id_}"
+        await self.bot.get_channel(self.bot.config["admin_logs"]).send(embed=embed)
         self.bot.connection.commit()
-        await context.channel.delete()
+        try:
+            self.bot.db.execute("DELETE FROM modmail WHERE channel LIKE ?", (context.channel.id,))
+            self.bot.connection.commit()
+        except Exception:
+            pass
+
+        return embed
 
 
 # Database Schema

@@ -42,19 +42,3 @@ async def tickets(request: Request, ticket: int):
         cache[ticket["id"]] = ParsedTicket(ticket, db)
     context = {"request": request, "tickets": ticket_headers, "ticket": cache[ticket["id"]]}
     return templates.TemplateResponse(name="template.html", context=context)
-
-    #
-    # files = [i for i in os.listdir("./tickets") if i.endswith(".txt")]
-    # parsed_tickets = []
-    # for i in files:
-    #     if i in cache:
-    #         parsed_tickets.append(cache[i])
-    #     else:
-    #         parsed = ParsedTicket(i)
-    #         cache[i] = parsed
-    #         parsed_tickets.append(parsed)
-    # if ticket not in files:
-    #     return templates.TemplateResponse(name="404.html", context={"request": request})
-    # context = {"request": request, "files": parsed_tickets, "ticket": cache[ticket]}
-    # return templates.TemplateResponse(name="template.html", context=context)
-

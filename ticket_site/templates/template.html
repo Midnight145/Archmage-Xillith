@@ -22,7 +22,7 @@
             {% for message in ticket %}
             <div class="message-box">
                 <div class="message">
-                    <img id="user_avatar" src="{{message.avatar}}" alt="avatar">
+                    <img id="user_avatar" src="data:image/png;base64, {{message.avatar}}" alt="avatar">
                     <div class="message-content">
                         <div class="message-header">
                             <span class="message-info">{{message.author}} ({{message.id}})</span>

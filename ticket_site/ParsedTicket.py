@@ -20,14 +20,15 @@ class ParsedTicket:
         messages = self.db.execute("SELECT * FROM messages WHERE ticket_id = ?", (self.ticket["id"],)).fetchall()
         for message in messages:
             attachments = self.db.execute("SELECT * FROM attachments WHERE message_id = ?", (message["id"],)).fetchall()
-            self.messages.append(Message(message, attachments))
+            self.messages.append(Message(message, attachments, self.db))
 
     def __iter__(self):
         return iter(self.messages)
 
 
 class Message:
-    def __init__(self, message: dict, attachments: list[dict]):
+    def __init__(self, message: dict, attachments: list[dict], db):
+        self.db = db
         self.message = message
         self.attachment_list = attachments
         self.avatar = None
@@ -37,9 +38,14 @@ class Message:
         self.attachments = []
         self.time = None
         self.parse()
-        self.avatar = f"/pfps/{self.id}.png"
 
     def parse(self):
+        print(self.message["author"])
+        pfp = self.db.execute("SELECT data FROM pfps WHERE id = ?", (self.message["author_id"],)).fetchone()
+        if pfp is None:
+            pfp = self.db.execute("SELECT data FROM pfps WHERE username = ?", (self.message["author"],)).fetchone()
+        self.avatar = base64.b64encode(pfp["data"]).decode()
+
         self.author = self.message["author"]
         self.id = self.message["author_id"]
         self.content = self.message["content"]

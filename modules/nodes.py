@@ -1,4 +1,4 @@
-import api
+import blightfall_api
 from discord.ext import commands
 from discord.ext.buttons import Paginator
 
@@ -16,7 +16,7 @@ class Nodes(commands.Cog):
         :return:
         """
         kwargs = dict((k, v) for k, v in (pair.split('=') for pair in args))  # convert args to dict, assuming format key=value
-        res = api.search_nodes(**kwargs)
+        res = blightfall_api.search_nodes(**kwargs)
 
         entries = []
         for i in res:

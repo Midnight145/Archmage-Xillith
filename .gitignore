@@ -3,3 +3,6 @@ TOKEN*
 __pycache__/
 config.json
 competitions*
+blightfall.db
+tickets/
+pfps/

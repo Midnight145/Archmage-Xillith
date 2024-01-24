@@ -11,7 +11,10 @@ class Moderation(commands.Cog):
     async def on_message(self, message: discord.Message):
         regex = re.compile(r"(?:https?://)?discord(?:app)?.(?:com/invite|gg)/[a-zA-Z0-9]+/?")
         author: discord.Member = message.author
-        perms: discord.Permissions = author.guild_permissions
+        try:
+            perms: discord.Permissions = author.guild_permissions
+        except AttributeError:
+            return
         if perms.manage_messages:
             return
         if regex.search(message.content):

@@ -1,15 +1,19 @@
 import datetime
 import os
+import re
 
+import requests
 from discord.ext import commands
 import discord
 import json
+
+from requests.exceptions import InvalidSchema
 
 
 class Utilities(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.bot.config_file = 'config.json'
+        self.bot.config_file = '../config.json'
 
         def update_config():
             data = json.JSONEncoder().encode(self.bot.config)
@@ -32,7 +36,7 @@ class Utilities(commands.Cog):
         self.bot.config["status"] = status
         self.bot.update_config()
 
-    @commands.command(aliases=["kill", "stop"], help="Kills the bot")
+    @commands.command(aliases=["kill"], help="Kills the bot")
     @commands.is_owner()
     async def die(self, context):
         await context.send("Bot shutting down...")
@@ -133,7 +137,7 @@ class Utilities(commands.Cog):
     @commands.is_owner()
     @commands.command(aliases=['rlconfig'])
     async def reload_config(self, context):
-        with open('config.json') as config_file:
+        with open('../config.json') as config_file:
             config = json.load(config_file)
             self.bot.config = config
             await context.send("Config reloaded!")
@@ -205,7 +209,7 @@ class Utilities(commands.Cog):
         if limit is None:
             check = is_me
         else:
-            check = None
+            check = lambda x: True
         await context.channel.purge(limit=int(limit) if limit is not None else 100, check=check)
 
     @commands.command()
@@ -258,6 +262,28 @@ class Utilities(commands.Cog):
             file = discord.File(filename)
             await context.send(f"Logged {member.mention} in {channel.mention}", file=file)
             os.remove(filename)
+
+    @commands.command(aliases=["addemote", "ae"])
+    @commands.has_permissions(manage_emojis=True)
+    async def add_emote(self, context: commands.Context, name, image=None):
+        if image is None:
+            if context.message.attachments:
+                await context.guild.create_custom_emoji(name=name, image=(
+                    await context.message.attachments[0].to_file()).fp.read())
+                await context.send("Emote " + name + " added")
+                return
+            else:
+                await context.send("Image is a require argument that is missing")
+                return
+        try:
+            emote = requests.get(image).content
+        except InvalidSchema:
+            image = self.bot.get_emoji(int(list(
+                (re.search("<(?P<animated>a?):(?P<name>[a-zA-Z0-9_]{2,32}):(?P<id>[0-9]{18,22})>", image)).groups())[
+                                               -1])).url
+            emote = requests.get(image).content
+        await context.guild.create_custom_emoji(name=name, image=emote)
+        await context.send("Emote " + name + " added")
 
 
 async def setup(bot):

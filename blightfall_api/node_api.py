@@ -30,7 +30,7 @@ aspect_map = {aspect: [] for aspect in aspects.split(",")}  # will store all nod
 modifier_map = {Modifier.name: [] for Modifier in Modifier}  # will store all nodes that have a specific modifier
 type_map = {Type.name: [] for Type in Type}  # will store all nodes that have a specific type
 
-file = open("api/nodes.json", "r")
+file = open("blightfall_api/nodes.json", "r")
 nodes = json.load(file)
 file.close()
 for node in nodes:

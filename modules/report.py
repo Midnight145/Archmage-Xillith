@@ -1,3 +1,5 @@
+import sqlite3
+
 import uuid
 
 import hashlib
@@ -16,6 +18,10 @@ class Report(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.reporting_channel = self.bot.config["reporting_channel"]
+        self.bot.db.execute("CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY, creator INTEGER, creation_time INTEGER, close_time INTEGER, closed_by INTEGER, closed_by_name TEXT)")
+        self.bot.db.execute("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, ticket_id INTEGER, author INTEGER, content TEXT, time INTEGER, attachments TEXT DEFAULT '')")
+        self.bot.db.execute("CREATE TABLE IF NOT EXISTS attachments (id INTEGER PRIMARY KEY, message_id INTEGER, name TEXT, data BLOB)")
+        self.bot.db.execute("CREATE TABLE IF NOT EXISTS pfps (id INTEGER PRIMARY KEY, data BLOB)")
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -50,40 +56,74 @@ class Report(commands.Cog):
         if context.channel.category.id != self.bot.config["ticket_category"]:
             return
         messages = [i async for i in context.channel.history(oldest_first=True)]
-        path = pathlib.Path(f"tickets/")
-        path.mkdir(parents=True, exist_ok=True)
-        uid = uuid.uuid4()
-        log = open(f"tickets/{uid}.txt", "w")
         saved_pfps = []
-        creator = context.guild.get_member(int(context.channel.name.split("-")[1]))
-        log.write(f"TICKET_START::{creator.display_name}::{creator.id}::"
-                  f"{context.channel.created_at.timestamp()}\n")
-        for i in messages:
-            if i.id not in saved_pfps:
-                saved_pfps.append(i.id)
-                path = pathlib.Path(f"pfps/")
 
-                path.mkdir(parents=True, exist_ok=True)
+        ticket_creator = context.guild.get_member(int(context.channel.name.split("-")[1]))
+        creation_time = context.channel.created_at.timestamp()
+        close_time = context.message.created_at.timestamp()
+        closed_by = context.author.id
+
+        self.bot.db.execute("INSERT INTO tickets (creator, creator_name, creation_time, close_time, closed_by, closed_by_name) "
+                            "VALUES (?, ?, ?, ?, ?, ?)",
+                            (ticket_creator.id, ticket_creator.display_name, int(creation_time), close_time, closed_by, context.author.display_name))
+        id_ = self.bot.db.lastrowid
+
+        for message in messages:
+            if message.author.id not in saved_pfps:
+                saved_pfps.append(message.author.id)
+                blob = io.BytesIO()
                 try:
-                    await i.author.avatar.save(path.joinpath(f"{i.author.id}.png"))
+                    await message.author.avatar.save(blob)
                 except AttributeError:
-                    await i.author.default_avatar.save(path.joinpath(f"{i.author.id}.png"))
-            if i.attachments:
-                # save attachments
-                for j in i.attachments:
-                    byteobj = io.BytesIO()
-                    await j.save(byteobj)
-                    md5 = hashlib.md5(byteobj.getvalue()).hexdigest()
-                    new_name = f"{md5}{pathlib.Path(j.filename).suffix}"
-                    j.filename = new_name
-                    path = pathlib.Path(f"tickets/images/{new_name}")
-                    os.makedirs(os.path.dirname(path), exist_ok=True)
-                    await j.save(path)
-            log.write(f"MESSAGE_START::{i.author.name}::{i.author.id}::{i.content if i.content else 'n/a'}"
-                      f"::{i.created_at.timestamp()}{'::' if i.attachments else ''}"
-                      f"{'::'.join([j.filename for j in i.attachments])}\n")
-        log.close()
+                    await message.author.default_avatar.save(blob)
+                try:
+                    self.bot.db.execute("INSERT INTO pfps (id, data) VALUES (?, ?)", (message.author.id, blob.getvalue()))
+                except sqlite3.IntegrityError:
+                    pass
+            content = re.sub(r'<@!?([0-9]+)>', lambda x: f"@{context.guild.get_member(int(x.group(1))).display_name}", message.content)
+            self.bot.db.execute("INSERT INTO messages (ticket_id, author_id, author, content, time) VALUES (?, ?, ?, ?, ?)",
+                                (id_, message.author.id, message.author.display_name, content, int(message.created_at.timestamp())))
+            message_id = self.bot.db.lastrowid
+            if message.attachments:
+                for file in message.attachments:
+                    blob = io.BytesIO()
+                    await file.save(blob)
+                    self.bot.db.execute("INSERT INTO attachments (message_id, name, data) VALUES (?, ?, ?)",
+                                        (message_id, file.filename, blob.getvalue()))
+
+        self.bot.connection.commit()
         await context.channel.delete()
+
+
+# Database Schema
+# Ticket:
+#   Ticket ID
+#   Creator ID
+#   Creation Time
+#   Close Time
+#   Closed By ID
+#   Closed By Name
+
+# CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY, creator INTEGER, creation_time INTEGER, close_time INTEGER
+# , closed_by INTEGER, closed_by_name TEXT)
+
+# Message:
+#   Ticket ID
+#   Author ID
+#   Content
+#   Time
+#   Attachments
+#     Comma separated list of attachment names
+
+# Attachment:
+#   Attachment ID
+#   Message ID
+#   Attachment Name
+#   Attachment Data
+
+# CREATE TABLE IF NOT EXISTS attachments (id INTEGER PRIMARY KEY, message_id INTEGER, name TEXT, data BLOB)
+# CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, ticket_id INTEGER, author INTEGER, content
+# TEXT, time INTEGER, attachments TEXT)
 
 
 async def setup(bot):

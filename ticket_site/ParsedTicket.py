@@ -1,9 +1,14 @@
+import base64
+
+import sqlite3
+
 import re
 from datetime import datetime
 
 
 class ParsedTicket:
-    def __init__(self, ticket: str):
+    def __init__(self, ticket: dict, db: sqlite3.Cursor):
+        self.db = db
         self.ticket = ticket
         self.author = None
         self.id = None
@@ -12,48 +17,39 @@ class ParsedTicket:
         self.parse()
 
     def parse(self):
-        with open(f"tickets/{self.ticket}") as f:
-            lines = f.readlines()
-            print(lines)
-            if lines[0].startswith("TICKET_START"):
-                line = lines.pop(0)
-                args = line.split("::")
-                self.author = args[1]
-                self.id = args[2]
-                self.timestamp = datetime.fromtimestamp(float(args[3])).strftime("%-m/%d/%y, %-I:%M %p")
-            else:
-                print("returning")
-                return
-            for i in lines:
-                print(i)
-                if not i.startswith("MESSAGE_START"):
-                    continue
-                self.messages.append(Message(i))
+        messages = self.db.execute("SELECT * FROM messages WHERE ticket_id = ?", (self.ticket["id"],)).fetchall()
+        for message in messages:
+            attachments = self.db.execute("SELECT * FROM attachments WHERE message_id = ?", (message["id"],)).fetchall()
+            self.messages.append(Message(message, attachments))
 
     def __iter__(self):
         return iter(self.messages)
 
 
 class Message:
-    def __init__(self, message: str):
+    def __init__(self, message: dict, attachments: list[dict]):
         self.message = message
+        self.attachment_list = attachments
         self.avatar = None
         self.author = None
         self.id = None
         self.content = None
-        self.attachments = None
+        self.attachments = []
         self.time = None
         self.parse()
         self.avatar = f"/pfps/{self.id}.png"
 
     def parse(self):
-        args = self.message.split("::")
-        dummy = args.pop(0)
-        self.author = args.pop(0)
-        self.id = args.pop(0)
-        self.content = args.pop(0)
-        self.time = datetime.fromtimestamp(float(args.pop(0))).strftime("%-m/%d/%y, %-I:%M %p")
-        if args:
-            self.attachments = args
+        self.author = self.message["author"]
+        self.id = self.message["author_id"]
+        self.content = self.message["content"]
+        for i in self.attachment_list:
+            self.attachments.append((i["name"], base64.b64encode(i["data"]).decode()))
+        self.time = datetime.fromtimestamp(self.message["time"]).strftime("%-m/%d/%y, %-I:%M %p")
 
 
+class TicketHeader:
+    def __init__(self, row: dict):
+        self.author = row["creator_name"]
+        self.id = row["id"]
+        self.timestamp = datetime.fromtimestamp(row["creation_time"]).strftime("%-m/%d/%y, %-I:%M %p")

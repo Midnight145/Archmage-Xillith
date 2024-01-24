@@ -7,6 +7,7 @@ from discord.ext.commands import Bot
 import datetime
 import discord
 from fastapi import FastAPI
+from starlette.staticfiles import StaticFiles
 
 from ticket_site import api
 
@@ -18,9 +19,10 @@ with open('TOKEN.txt', 'r') as token:
 app = FastAPI()
 app.include_router(api.router)
 
-app.mount("/static", api.StaticFiles(directory="ticket_site/static"), name="static")
-app.mount("/pfps", api.StaticFiles(directory="pfps"), name="pfps")
-app.mount("/tickets/images", api.StaticFiles(directory="tickets/images"), name="images")
+app.mount("/static", StaticFiles(directory="ticket_site/static"), name="static")
+app.mount("/pfps", StaticFiles(directory="pfps"), name="pfps")
+app.mount("/tickets/images", StaticFiles(directory="tickets/images"), name="images")
+
 
 # noinspection PyUnusedLocal
 async def get_prefix(bot_, message):
@@ -66,6 +68,7 @@ db.execute("CREATE TABLE IF NOT EXISTS modmail (id INTEGER PRIMARY KEY, channel 
 connection.commit()
 bot.db = db
 bot.connection = connection
+api.db = db
 
 
 @bot.event

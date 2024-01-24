@@ -1,0 +1,93 @@
+body {
+    background-color: #2c2f33;
+    display:flex;
+}
+
+.file-list {
+    width: 250px;
+    background-color: #23272a;
+    height: 100%;
+    background-clip: content-box;
+    border-radius: 12px;
+}
+
+
+.template-file {
+    padding: 12px;
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 20px;
+    border-bottom: 1px solid #ffffff;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.ticket {
+    left: 250px;
+    height: 100%;
+    padding: 12px;
+    width: calc(100% - 250px);
+    overflow: auto;
+}
+
+.message-content {
+    margin-left: 70px;
+    height: 100%;
+}
+
+.message-info {
+    margin-top: 0px;
+    font-size: 20px;
+    width: auto;
+    display: flex-start;
+    border-bottom: 5px solid #2c2f33;
+    padding-right: 20px;
+}
+
+.message-header {
+    height: auto;
+    display: flex;
+}
+
+.message-time {
+    margin-top: 0px;
+    font-size: 20px;
+    width: auto;
+    display: flex-start;
+    border-bottom: 5px solid #2c2f33;
+}
+
+.message-box {
+    clear: both;
+    background-color: #23272a;
+    border-radius: 12px;
+    color: #ffffff;
+    padding: 4px;
+    background-clip: content-box;
+    width: 98%;
+    overflow-wrap: break-word;
+}
+
+.message {
+    padding: 10px;
+    padding-left: 7px;
+}
+
+.message-text {
+    font-size: 19px;
+    width: 90%
+}
+
+#user_avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    float: left;
+}
+
+.attachment {
+    max-width:30%;
+}

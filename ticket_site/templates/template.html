@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="/static/style.css">
+        <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+        <meta charset="UTF-8">
+        <title>Blightfall Tickets</title>
+    </head>
+    <body>
+        <div class="file-list" id="files">
+            <div class="template-file">
+                <a href="/tickets/">Tickets</a>
+            </div>
+            {% for file in files %}
+            <div class="template-file">
+                <a href="/tickets/{{ file.ticket }}">{{ file.author }} | {{ file.timestamp }}</a>
+            </div>
+            {% endfor %}
+        </div>
+        {% if ticket %}
+        <div class="ticket" id="ticket-container">
+            {% for message in ticket %}
+            <div class="message-box">
+                <div class="message">
+                    <img id="user_avatar" src="{{message.avatar}}" alt="avatar">
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-info">{{message.author}} ({{message.id}})</span>
+                            <span class="message-time">{{message.time}}</span>
+                        </div>
+                        <span class="message-text">{{message.content}}</span>
+                        {% if message.attachments %}
+                        <div class="message-attachments">
+                            {% for attachment in message.attachments %}
+                            <img class="attachment" src="/tickets/images/{{attachment}}">
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </body>
+</html>

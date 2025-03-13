@@ -18,6 +18,7 @@ class ErrorHandler(commands.Cog):
         self.bot = bot
 
     @commands.command(aliases=["show_error"])
+    @commands.is_owner()
     async def get_error(self, context: commands.Context, errcode: str):
         try:
             await context.send(str(self.bot.traceback[int(errcode)]))
@@ -43,10 +44,12 @@ class ErrorHandler(commands.Cog):
         self.bot.traceback[err_code] = handler
 
     @commands.command()
+    @commands.is_owner()
     async def throw(self, context: commands.Context):
         raise ZeroDivisionError
 
     @commands.command()
+    @commands.is_owner()
     async def del_error(self, context: commands.Context, errcode: str):
         try:
             temp = self.bot.traceback[int(errcode)]
@@ -57,11 +60,13 @@ class ErrorHandler(commands.Cog):
         await context.send(f"Traceback {errcode} deleted. Contents:\n{str(temp)}")
 
     @commands.command()
+    @commands.is_owner()
     async def clear_errors(self, context: commands.Context):
         self.bot.traceback = {}
         await context.send("Traceback cache cleared.")
 
     @commands.command()
+    @commands.is_owner()
     async def show_errors(self, context):
         pages = []
         items = []

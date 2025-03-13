@@ -1,27 +1,28 @@
 #! /usr/bin/python3.10
-import asyncio
 import sqlite3
 import json
+import os
 
 from discord.ext.commands import Bot
 import datetime
 import discord
-from fastapi import FastAPI
-from starlette.staticfiles import StaticFiles
 
-from ticket_site import api
+from google import genai
+from google.genai.types import GenerateContentConfig, SafetySetting, HarmBlockThreshold, HarmCategory
+from google.genai.errors import APIError, ServerError
+from dotenv import load_dotenv
 
 with open('config.json') as config_file:
     config = json.load(config_file)
 with open('TOKEN.txt', 'r') as token:
     TOKEN = token.read().rstrip()
-
-app = FastAPI()
-app.include_router(api.router)
-
-app.mount("/static", StaticFiles(directory="ticket_site/static"), name="static")
-app.mount("/pfps", StaticFiles(directory="pfps"), name="pfps")
-app.mount("/tickets/images", StaticFiles(directory="tickets/images"), name="images")
+#
+# app = FastAPI()
+# app.include_router(api.router)
+#
+# app.mount("/static", StaticFiles(directory="ticket_site/static"), name="static")
+# app.mount("/pfps", StaticFiles(directory="pfps"), name="pfps")
+# app.mount("/tickets/images", StaticFiles(directory="tickets/images"), name="images")
 
 
 # noinspection PyUnusedLocal
@@ -58,6 +59,32 @@ def dict_factory(cursor, row):
 connection = sqlite3.connect(config["database_file"], check_same_thread=False)
 # connection.row_factory = sqlite3.Row
 
+categories = [
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    HarmCategory.HARM_CATEGORY_HARASSMENT,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY
+]
+settings = []
+
+# attachments = {
+# }
+# for file in os.listdir("attachments"):
+#     with open("attachments/" + file, "r") as f:
+#         attachments[int(file.replace(".txt", ""))] = f.read()
+
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+for category in categories:
+    settings.append(SafetySetting(category=category, threshold=HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE))
+
+gemini_config = GenerateContentConfig(safety_settings=settings)
+
+bot.gemini = genai.Client(api_key=GEMINI_API_KEY)
+bot.gemini_config = gemini_config
+
 connection.row_factory = dict_factory
 db = connection.cursor()
 db.execute("CREATE TABLE IF NOT EXISTS warns (id INTEGER PRIMARY KEY, member INTEGER, reason TEXT)")
@@ -65,11 +92,10 @@ db.execute(
     "CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY,user_id INTEGER, channel INTEGER, "
     "time INTEGER, phrase TEXT, jump_url TEXT)")
 db.execute("CREATE TABLE IF NOT EXISTS modmail (id INTEGER PRIMARY KEY, channel INTEGER)")
+db.execute("CREATE TABLE IF NOT EXISTS ai_messages (id INTEGER PRIMARY KEY, parent INTEGER, author INTEGER, channel INTEGER, context TEXT)")
 connection.commit()
 bot.db = db
 bot.connection = connection
-api.db = db
-
 
 @bot.event
 async def on_ready():
@@ -106,12 +132,14 @@ async def on_connect():
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M.%S"))
     print()
 
+#
+# async def start():
+#     try:
+#         await bot.start(TOKEN)
+#     except KeyboardInterrupt:
+#         await bot.close()
+#
+#
+# asyncio.create_task(start())
 
-async def start():
-    try:
-        await bot.start(TOKEN)
-    except KeyboardInterrupt:
-        await bot.close()
-
-
-asyncio.create_task(start())
+bot.run(TOKEN)

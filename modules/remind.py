@@ -78,7 +78,10 @@ class Remind(commands.Cog):
         print("Sleeping until " + str(
             datetime.datetime.fromtimestamp(reminder["time"], datetime.timezone.utc)) + " for " + reminder["phrase"])
         await discord.utils.sleep_until(datetime.datetime.fromtimestamp(reminder["time"], datetime.timezone.utc))
-        await channel.send(f"{user.mention}: {reminder['phrase']}\nMessage: {reminder['jump_url']}")
+        try:
+            await channel.send(f"{user.mention}: {reminder['phrase']}\nMessage: {reminder['jump_url']}")
+        except discord.errors.DiscordException:
+            pass
         self.bot.db.execute("DELETE FROM reminders WHERE id = ?", (reminder["id"],))
         self.bot.connection.commit()
 

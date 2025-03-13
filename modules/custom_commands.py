@@ -20,6 +20,7 @@ class CustomCommands(commands.Cog):
                 await message.channel.send(response)
 
     @commands.command(aliases=["add_command"])
+    @commands.is_owner()
     async def add_custom_command(self, context, command, *, response):
         self.custom_commands[command] = response
         self.save_commands()
@@ -30,6 +31,7 @@ class CustomCommands(commands.Cog):
             json.dump(self.custom_commands, f)
 
     @commands.command(aliases=["delete_command", "remove_command"])
+    @commands.is_owner()
     async def remove_custom_command(self, context, command):
         if command not in self.custom_commands:
             await context.send(f"Error: Command {command} does not exist")

@@ -13,7 +13,7 @@ from requests.exceptions import InvalidSchema
 class Utilities(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.bot.config_file = '../config.json'
+        self.bot.config_file = './config.json'
 
         def update_config():
             data = json.JSONEncoder().encode(self.bot.config)
@@ -137,7 +137,7 @@ class Utilities(commands.Cog):
     @commands.is_owner()
     @commands.command(aliases=['rlconfig'])
     async def reload_config(self, context):
-        with open('../config.json') as config_file:
+        with open('./config.json') as config_file:
             config = json.load(config_file)
             self.bot.config = config
             await context.send("Config reloaded!")
@@ -213,6 +213,7 @@ class Utilities(commands.Cog):
         await context.channel.purge(limit=int(limit) if limit is not None else 100, check=check)
 
     @commands.command()
+    @commands.is_owner()
     async def message(self, context, member: discord.Member, *, contents: str):
         files = [(await i.to_file()) for i in context.message.attachments]
 
@@ -236,6 +237,7 @@ class Utilities(commands.Cog):
         await context.send(str(member.id))
 
     @commands.command()
+    @commands.is_owner()
     async def log(self, context: commands.Context, member: discord.Member):
         await context.send("Going...")
         guild: discord.Guild = context.guild

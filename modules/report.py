@@ -57,10 +57,7 @@ class Report(commands.Cog):
     async def close(self, context: commands.Context, *, reason=""):
         if context.channel.category.id != self.bot.config["ticket_category"]:
             return
-        embed = await self.close_ticket(self, context, reason)
-        channel = context.guild.get_channel(self.bot.config["admin_logs"])
-        await channel.send(embed=embed)
-
+        await self.close_ticket(self, context, reason)
         await context.channel.delete()
 
     @staticmethod

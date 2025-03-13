@@ -44,8 +44,10 @@ class Message:
         pfp = self.db.execute("SELECT data FROM pfps WHERE id = ?", (self.message["author_id"],)).fetchone()
         if pfp is None:
             pfp = self.db.execute("SELECT data FROM pfps WHERE username = ?", (self.message["author"],)).fetchone()
-        self.avatar = base64.b64encode(pfp["data"]).decode()
-
+        try:
+            self.avatar = base64.b64encode(pfp["data"]).decode()
+        except TypeError:
+            self.avatar = None
         self.author = self.message["author"]
         self.id = self.message["author_id"]
         self.content = self.message["content"]

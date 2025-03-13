@@ -1,6 +1,5 @@
 import sqlite3
 
-import os
 from fastapi import Request, APIRouter
 from fastapi.templating import Jinja2Templates
 
@@ -11,15 +10,12 @@ db: sqlite3.Cursor
 router = APIRouter()
 templates = Jinja2Templates(directory="ticket_site/templates")
 
-
 cache = {}
 
 
 @router.get("/")
 @router.get("/tickets")
 async def root(request: Request):
-    # logged in check
-    # else login with discord
     resp = db.execute("SELECT * FROM tickets").fetchall()
     ticket_headers = [TicketHeader(i) for i in resp]
 
